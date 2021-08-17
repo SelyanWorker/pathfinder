@@ -7,6 +7,78 @@
 #include <QPushButton>
 #include <QLabel>
 #include <QGridLayout>
+#include <QGraphicsSceneWheelEvent>
+#include <QWheelEvent>
+#include <QtMath>
+
+#include <iostream>
+
+class CustomGraphicsView : public QGraphicsView
+{
+public:
+    CustomGraphicsView(QWidget* parent = nullptr)
+    : QGraphicsView(parent)
+    {}
+
+    CustomGraphicsView(QGraphicsScene* scene)
+    : QGraphicsView(scene)
+    {
+    }
+
+protected:
+    void wheelEvent(QWheelEvent *event) override
+    {
+        double factor = qPow(1.0005, event->angleDelta().y());
+        scale(factor, factor);
+
+        centerOn(m_target_scene_pos);
+
+//        centerOn(m_target_scene_pos);
+//        QPointF delta_viewport_pos =
+//            m_target_viewport_pos - QPointF(viewport()->width() / 2.0, viewport()->height() / 2.0);
+//        QPointF viewport_center = mapFromScene(m_target_viewport_pos) - delta_viewport_pos;
+//        centerOn(mapToScene(viewport_center.toPoint()));
+    }
+
+    void mouseMoveEvent(QMouseEvent *event) override
+    {
+        m_target_viewport_pos = event->pos();
+        m_target_scene_pos = mapToScene(event->pos());
+
+        QGraphicsView::mouseMoveEvent(event);
+    }
+
+
+private:
+    QPoint m_target_viewport_pos;
+    QPointF m_target_scene_pos;
+
+};
+
+class CustomRectangle : public QGraphicsRectItem
+{
+public:
+    CustomRectangle(QGraphicsItem* parent = nullptr)
+    : QGraphicsRectItem(parent)
+    {}
+
+    CustomRectangle(const QRectF& rect)
+    : QGraphicsRectItem(rect)
+    {
+        setAcceptHoverEvents(true);
+    }
+
+protected:
+    void hoverEnterEvent(QGraphicsSceneHoverEvent *event) override
+    {
+        setBrush(Qt::green);
+    }
+
+    void hoverLeaveEvent(QGraphicsSceneHoverEvent *event) override
+    {
+        setBrush(Qt::white);
+    }
+};
 
 class MainWidget : public QWidget
 {
@@ -19,8 +91,8 @@ public:
         m_scene = new QGraphicsScene;
         fill_scene(*m_scene, { 40, 40 }, { 2, 2 });
 
-        m_view = new QGraphicsView(m_scene);
-        //view->scale(2, 2);
+        m_view = new CustomGraphicsView(m_scene);
+
 
         m_view->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff); // Отключим скроллбар по горизонтали
         m_view->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);   // Отключим скроллбар по вертикали
@@ -63,17 +135,14 @@ private slots:
         {
             for(size_t j = 0; j < size.width(); ++j)
             {
-                scene.addRect(QRectF{ lastRect, rectSize });
+                auto rectPtr = new CustomRectangle(QRectF{ lastRect, rectSize });
+
+                scene.addItem(rectPtr);
                 lastRect.rx() += rectSize.width();
             }
             lastRect.rx() = 0;
             lastRect.ry() += rectSize.height();
         }
-    }
-
-    void scale_scene(qreal scale)
-    {
-
     }
 
 private:
