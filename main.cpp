@@ -10,8 +10,52 @@
 #include <QGraphicsSceneWheelEvent>
 #include <QWheelEvent>
 #include <QtMath>
+#include <QMultiMap>
+#include <QVector>
 
 #include <iostream>
+
+struct Node
+{
+    bool isWall = false;
+
+    QVector<quint32> children;
+};
+
+auto generate_map(qint32 width, qint32 height)
+{
+    assert(width >= 0 && height >= 0);
+
+    QVector<Node> nodes{ width * height };
+
+    for(qint32 i = 0; i < nodes.size(); ++i)
+    {
+        qint32 y = i / width;
+        qint32 x = i - y * width;
+
+        if (y - 1 >= 0)
+        {
+            nodes[i].children.push_back((y - 1) * width + x);
+        }
+
+        if (y + 1 < height)
+        {
+            nodes[i].children.push_back((y + 1) * width + x);
+        }
+
+        if (x - 1 >= 0)
+        {
+            nodes[i].children.push_back(y * width + x - 1);
+        }
+
+        if (x + 1 < width)
+        {
+            nodes[i].children.push_back(y * width + x + 1);
+        }
+    }
+
+    return nodes;
+}
 
 class CustomGraphicsView : public QGraphicsView
 {
@@ -104,7 +148,7 @@ public:
 
         QPushButton *generateButton = new QPushButton{ "Generate" };
         connect(generateButton,
-                QPushButton::pressed,
+                &QPushButton::pressed,
                 [&]()
                 {
                     fill_scene(*m_scene, { 40, 40 }, QSize{ m_width->value(), m_height->value() });
@@ -154,6 +198,8 @@ private:
 
 int main(int argc, char **argv)
 {
+    auto map = generate_map(3, 3);
+
     QApplication a(argc, argv);
 
     MainWidget widget;
